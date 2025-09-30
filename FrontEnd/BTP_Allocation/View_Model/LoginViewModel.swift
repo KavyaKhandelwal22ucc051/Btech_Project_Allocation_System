@@ -8,34 +8,7 @@
 import Foundation
 import Combine
 
-struct LoginRequest: Codable {
-    let email : String
-    let password : String
-    let role : String
-}
 
-struct LoginResponse : Codable {
-    let success : Bool
-    let user : User?
-    let message : String
-    let token : String?
-}
-
-struct RegisterRequest: Codable {
-    let name: String
-    let email: String
-    let password: String
-    let phoneNumber: String
-    let role: String
-    let branch: String
-}
-
-struct RegisterResponse: Codable {
-    let success: Bool      // Did registration work?
-    let message: String    // What happened?
-    let user: User?        // User data (if successful)
-    let token: String?     // Auth token (if successful)
-}
 
 @MainActor
 class LoginViewModel : ObservableObject {

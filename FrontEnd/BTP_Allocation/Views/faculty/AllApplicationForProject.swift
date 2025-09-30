@@ -14,15 +14,17 @@ struct AllApplicationForProject: View {
         List(applications,id: \.self){
             application in
             NavigationLink{
-                ApproveAndDeleteView()
+                ApproveAndDeleteView(application: application)
             }label: {
-                Text(application.name)
-                    .font(.headline)
-                    .fontWeight(.bold)
-                
-                Text("\(application.cgpa)")
-                    .font(.caption)
-                    .fontWeight(.semibold)
+                VStack{
+                    Text(application.name)
+                        .font(.headline)
+                        .fontWeight(.bold)
+                    
+                    Text("CGPA : \(application.cgpa)")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                }
             }
         }
     }
