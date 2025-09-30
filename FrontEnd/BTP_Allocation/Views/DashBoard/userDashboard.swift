@@ -8,8 +8,9 @@
 import SwiftUI
 
 struct userDashboard: View {
-//    @ObservedObject var viewModel: LoginViewModel
+    @ObservedObject var viewModel: LoginViewModel
     @State private var selectedTab = 0
+    @Environment(\.dismiss) var dismiss
     var body: some View {
         TabView(selection: $selectedTab){
             
@@ -21,24 +22,25 @@ struct userDashboard: View {
                 }.tag(0)
             
             
-            SubmittedFormView()
+            MyApplicationsView()
                 .tabItem{
                     Image(systemName: "doc.text.fill")
                     Text("My Applications")
                 }.tag(1)
             
-            allFacultyStatusView()
-                .tabItem{
-                    Image(systemName: "person.3.fill")
-                    Text("Faculty Status")
-                }.tag(2)
             
             
         }.navigationBarBackButtonHidden(true)
+            .navigationBarItems(trailing: (
+                Button{
+                    viewModel.logout()
+                    dismiss()
+                }label: {
+                    Text("Sign Out")
+                        .foregroundColor(Color("blue1"))
+                }
+                ))
             
     }
 }
 
-#Preview {
-    userDashboard()
-}

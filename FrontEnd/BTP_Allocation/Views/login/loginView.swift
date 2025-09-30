@@ -23,18 +23,10 @@ struct loginView: View {
                         .font(.title)
                         .fontWeight(.bold)
                     
-                    TextField("", text: $viewModel.role,prompt: Text("Role").foregroundColor(.white))
-                        .padding()
-                        .foregroundColor(.white).fontWeight(.bold)
-                    
-                        .font(viewModel.role.isEmpty ? .caption : .headline)
-                        .frame(width: 250,height: 30)
-                        .overlay{
-                            RoundedRectangle(cornerRadius: 6).stroke(.white,lineWidth: 2)
-                        }
                     
                     
                     TextField("", text: $viewModel.email,prompt: Text("Email").foregroundColor(.white))
+                        .textInputAutocapitalization(.never)
                         .padding()
                         .foregroundColor(.white).fontWeight(.bold)
                     
@@ -43,6 +35,8 @@ struct loginView: View {
                         .overlay{
                             RoundedRectangle(cornerRadius: 6).stroke(.white,lineWidth: 2)
                         }
+                    
+                    RoleSelectionView(selectedRole: $viewModel.role, roles: viewModel.roles)
                     
                     
                     SecureField("", text: $viewModel.password,prompt: Text("Password").foregroundColor(.white))
@@ -72,12 +66,19 @@ struct loginView: View {
                             
                     }
                     
-                    NavigationLink(destination: userDashboard(), isActive: $viewModel.isLoggedIn){
-                        EmptyView()
+                    if viewModel.role == "student" {
+                        
+                        NavigationLink(destination: userDashboard(viewModel: viewModel), isActive: $viewModel.isLoggedIn){
+                            EmptyView()
+                        }
+                    } else{
+                        NavigationLink(destination: facultyDashBoard(viewModel: viewModel), isActive: $viewModel.isLoggedIn){
+                            EmptyView()
+                        }
                     }
                     
-                    Button{
-                         
+                    NavigationLink{
+                        RegisterView()
                     }label: {
                         Text("Register New User!")
                             .font(.callout)
@@ -93,6 +94,7 @@ struct loginView: View {
         }
     }
 }
+
 
 #Preview {
     loginView()

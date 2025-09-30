@@ -9,7 +9,7 @@ import Foundation
 import SwiftUI
 
 // MARK: - Application Model
-struct Application: Codable, Identifiable {
+struct Application: Codable, Identifiable , Hashable  {
     let id: String
     let name: String
     let email: String
@@ -29,12 +29,17 @@ struct Application: Codable, Identifiable {
     }
 }
 
-struct ApplicantID: Codable {
+
+
+
+
+
+struct ApplicantID: Codable , Hashable {
     let user: String
     let role: String
 }
 
-struct FacultyID: Codable {
+struct FacultyID: Codable  , Hashable{
     let user: String
     let role: String
 }
@@ -44,6 +49,11 @@ struct ApplicationResponse: Codable {
     let success: Bool
     let message: String
     let application: Application?
+}
+
+struct MyApplicationsResponse : Codable {
+    let success: Bool
+    let applications : [Application] 
 }
 
 struct ApplicationsResponse: Codable {
@@ -65,6 +75,8 @@ class ApplicationViewModel: ObservableObject {
     @Published var errorMessage = ""
     @Published var successMessage = ""
     @Published var isSubmitted = false
+    @Published var myApplications : [Application] = []
+    @Published var getAllApplications: [Application] = []
     
     
     // Validation properties
@@ -102,6 +114,52 @@ class ApplicationViewModel: ObservableObject {
         isPhoneValid && isAddressValid && isCGPAValid
     }
     
+    // MARK: - GET all applications
+    
+    
+    func fetchAllApplications() async {
+        errorMessage =  ""
+        
+        do{
+            guard let url = URL(string:  "http://localhost:4000/api/v1/application/getAll")else{
+                errorMessage = "Invalid URL"
+                print(errorMessage)
+                return
+            }
+            
+            var request = URLRequest(url: url)
+            
+            request.httpMethod = "GET"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            
+            if let token = UserDefaults.standard.string(forKey: "auth_token"){
+                request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+            }
+            
+            let (data,response) = try await URLSession.shared.data(for: request)
+            
+            guard let httpResponse = response as? HTTPURLResponse else{
+                return
+            }
+            
+            guard 200...299 ~= httpResponse.statusCode else {
+                print("error in status code")
+                return
+            }
+            
+            let allApplications = try JSONDecoder().decode(ApplicationsResponse.self, from: data)
+            
+            self.getAllApplications = allApplications.applications
+            
+        }catch{
+            print("errot in try")
+        }
+    }
+    
+    
+    
+    
+    // MARK: - Submit Applications
     func submitApplication(for project: Project) async {
         guard isFormValid else {
             errorMessage = "Please fill all fields correctly"
@@ -191,6 +249,48 @@ class ApplicationViewModel: ObservableObject {
         }
         
         isLoading = false
+    }
+    
+    // MARK: - my application
+    
+    func getMyApplications() async {
+        errorMessage = ""
+        
+        do{
+            guard let url = URL(string: "http://localhost:4000/api/v1/application/myapplications") else{
+                errorMessage = "Invalid url"
+                return
+            }
+            
+            var request = URLRequest(url: url)
+            request.httpMethod = "GET"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            
+            if let token = UserDefaults.standard.string(forKey: "auth_token"){
+                request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+            }
+            
+            let (data,response) = try await URLSession.shared.data(for: request)
+            
+            guard let httpresponse = response as? HTTPURLResponse else{
+                print("error in response")
+                return
+            }
+            
+            guard 200...299 ~= httpresponse.statusCode else {
+                print("error in status code")
+                return
+            }
+               
+            let myApplication = try JSONDecoder().decode(MyApplicationsResponse.self, from: data)
+                
+                
+            self.myApplications = myApplication.applications
+           
+            
+        }catch{
+            print("error in try")
+        }
     }
     
     private func handleDecodingError(_ error: DecodingError) {

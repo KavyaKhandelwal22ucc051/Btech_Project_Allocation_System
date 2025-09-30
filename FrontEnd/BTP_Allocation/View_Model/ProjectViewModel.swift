@@ -9,7 +9,7 @@
 import Foundation
 
 // MARK: - Project Model
-struct Project: Codable, Identifiable {
+struct Project: Codable, Identifiable , Hashable{
     let id: String
     let title: String
     let description: String
@@ -49,6 +49,17 @@ struct ProjectsResponse: Codable {
     let projects: [Project]
 }
 
+struct ProjectResponse : Codable {
+    let success : Bool
+    let message : String
+    let project : Project?
+}
+
+struct MyProjectsResponse: Codable {
+    let success: Bool
+    let myProjects: [Project]
+}
+
 struct ErrorResponse: Codable {
     let success: Bool
     let message: String
@@ -59,6 +70,7 @@ struct ErrorResponse: Codable {
 class ProjectViewModel: ObservableObject {
     @Published var projects: [Project] = []
     @Published var filteredProjects: [Project] = []
+    @Published var myProjects : [Project] = []
     @Published var isLoading = false
     @Published var errorMessage = ""
     @Published var searchText = ""
@@ -66,6 +78,68 @@ class ProjectViewModel: ObservableObject {
     @Published var selectedCountry = "All"
     @Published var minCGPA: Double = 0.0
     @Published var maxCGPA: Double = 10.0
+    @Published var successMessage = ""
+    
+    @Published var title = ""
+    @Published var description = ""
+    @Published var country = ""
+    @Published var category = ""
+
+    @Published var duration = ""
+    @Published var cgpa = ""
+    @Published var salaryFrom = ""
+    @Published var salaryTo = ""
+    @Published var isProjectSubmitted = false
+    
+    
+    var isValidtitle : Bool {
+        if title.isEmpty {
+            return false
+        }
+        return true
+    }
+    
+    var isValidDescription : Bool {
+        if description.isEmpty {
+            return false
+        }
+        return true
+    }
+    
+    var isValidCountry : Bool {
+        if country.isEmpty {
+            return false
+        }
+        
+        return true
+    }
+    
+    var isValidCategory : Bool {
+        if category.isEmpty{
+            return false
+        }
+        
+        return true
+    }
+    
+    var isValidDuration : Bool {
+        if duration.isEmpty {
+            return false
+        }
+        
+        return true
+    }
+    
+    var isCGPAValid: Bool {
+        if let cgpaValue = Double(cgpa) {
+            return cgpaValue >= 4.0 && cgpaValue <= 10.0
+        }
+        return false
+    }
+    
+    var isFormValid : Bool {
+        isValidtitle && isCGPAValid && isValidCountry && isValidCategory && isValidDuration && isValidDescription
+    }
     
     // Filter options
     let categories = ["All", "Web Development", "Mobile Development", "AI/ML", "Data Science", "IoT", "Blockchain", "Other"]
@@ -73,20 +147,8 @@ class ProjectViewModel: ObservableObject {
     
     private let baseURL = "http://localhost:4000/api/v1/project/getAll" // Replace with your actual backend URL
     
-    init() {
-        // Set up search functionality
-        setupSearchAndFilter()
-    }
     
-    private func setupSearchAndFilter() {
-        // Combine search text and filter changes to update filtered projects
-        Task {
-            for await _ in NotificationCenter.default.notifications(named: .init("UpdateFilters")) {
-                await filterProjects()
-            }
-        }
-    }
-    
+    // MARK: - fetch all projects
     func fetchAllProjects() async {
         isLoading = true
         errorMessage = ""
@@ -148,6 +210,94 @@ class ProjectViewModel: ObservableObject {
         isLoading = false
     }
     
+    // MARK: - Add Project
+    
+    func addProject() async{
+        
+        guard isFormValid else{
+            errorMessage = "Plese enter all the fields"
+            return
+        }
+        
+        guard let cgpaDouble = Double(cgpa) else {
+            errorMessage = "Invalid CGPA value"
+            return
+        }
+        
+        guard let Doubleduration = Int(duration) else{
+            errorMessage = "Invalid Duration"
+            return
+        }
+        
+        guard let DoubleSalaryto = Int(salaryTo), let DoubleSalaryFrom = Int(salaryFrom) else{
+            errorMessage = "Invalid Salary"
+            return
+        }
+        
+        errorMessage = ""
+        successMessage = ""
+        
+        do{
+            guard let url = URL(string: "http://localhost:4000/api/v1/project/post")else{
+                print("Invalid URL")
+                return
+            }
+            
+            
+            
+            var request = URLRequest(url:url)
+            request.httpMethod = "POST"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            
+            if let token = UserDefaults.standard.string(forKey: "auth_token"){
+                request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+            }
+            
+            let payload : [String : Any] = [
+                "title":title,
+                "description":description,
+                "category" : category,
+                "country":country,
+                "duration":Doubleduration,
+                "cgpa":cgpaDouble,
+                "salaryFrom":DoubleSalaryFrom,
+                "salaryTo":DoubleSalaryto
+            ]
+            
+            request.httpBody = try JSONSerialization.data(withJSONObject: payload)
+            
+            let (data,response) = try await URLSession.shared.data(for: request)
+            
+            guard let httpresponse = response as? HTTPURLResponse else{
+                print("error")
+                return
+            }
+            
+            
+            if httpresponse.statusCode == 200{
+                let projectResponse = try JSONDecoder().decode(ProjectResponse.self, from: data)
+                
+                if projectResponse.success {
+                    isProjectSubmitted = true
+                    successMessage = projectResponse.message
+                    clearProjectFrom()
+                }else{
+                    errorMessage = projectResponse.message
+                }
+            }else{
+                if let errorResponse = try? JSONDecoder().decode(ProjectResponse.self, from: data){
+                    errorMessage = errorResponse.message
+                }else{
+                    errorMessage = "Server error \(httpresponse.statusCode)"
+                }
+            }
+            
+        }catch{
+            print("error")
+        }
+        
+    }
+    
     func filterProjects() async {
         var filtered = projects
         
@@ -195,6 +345,65 @@ class ProjectViewModel: ObservableObject {
         Task {
             await filterProjects()
         }
+    }
+    
+    //MARK: - fetch My projects
+    
+    func fetchMyProjects() async {
+        errorMessage = ""
+        
+        do{
+            guard let url = URL(string: "http://localhost:4000/api/v1/project/myprojects")else{
+                print("Invalid URL")
+                return
+            }
+            
+            var request  = URLRequest(url: url)
+            
+            request.httpMethod = "GET"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            
+            guard let token = UserDefaults.standard.string(forKey: "auth_token")else{
+                errorMessage = "Authentication required. Please log in."
+                return
+            }
+            
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+            
+            let (data,response) = try await URLSession.shared.data(for: request)
+            
+            guard let httpResponse = response as? HTTPURLResponse else{
+                print("http response error")
+                return
+            }
+            
+            guard 200...299 ~= httpResponse.statusCode else {
+                print("error in status code")
+                return
+            }
+           
+            let projectResponse = try JSONDecoder().decode(MyProjectsResponse.self, from: data)
+            
+            self.myProjects = projectResponse.myProjects
+            
+        }catch{
+            print("error in try")
+        }
+    }
+    
+    // MARK: - Clear from
+    
+    func clearProjectFrom() {
+        title = ""
+        description = ""
+        country = ""
+        category = ""
+        cgpa = ""
+        salaryTo = ""
+        salaryFrom = ""
+        duration = ""
+        errorMessage = ""
+        successMessage = ""
     }
     
     func getSingleProject(id: String) async -> Project? {

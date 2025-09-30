@@ -60,13 +60,7 @@ struct AllProjectsView: View {
                         
                         Spacer()
                         
-                        if !projectViewModel.searchText.isEmpty || projectViewModel.selectedCategory != "All" || projectViewModel.selectedCountry != "All" {
-                            Button("Clear Filters") {
-                                projectViewModel.clearFilters()
-                            }
-                            .font(.caption)
-                            .foregroundColor(Color("blue1"))
-                        }
+                        
                     }
                 }
                 .padding()
