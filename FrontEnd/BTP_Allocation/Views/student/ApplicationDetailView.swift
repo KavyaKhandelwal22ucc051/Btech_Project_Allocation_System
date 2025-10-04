@@ -52,6 +52,7 @@ struct ApplicationDetailView: View {
                         DetailRow(label: "CGPA", value: String(format: "%.2f", application.cgpa))
                         DetailRow(label: "Branch", value: application.branch)
                         DetailRow(label: "Address", value: application.address)
+                        DetailRow(label: "Status", value: application.status)
                         
                         Divider()
                         

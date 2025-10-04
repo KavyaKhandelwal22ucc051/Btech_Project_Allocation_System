@@ -21,11 +21,12 @@ struct Application: Codable, Identifiable , Hashable  {
     let projectId: String
     let branch: String
     let cgpa: Double
+    let status : String
     
     enum CodingKeys: String, CodingKey {
         case id = "_id"
         case name, email, coverLetter, phone, address
-        case applicantID, facultyID, projectId, branch, cgpa
+        case applicantID, facultyID, projectId, branch, cgpa , status
     }
 }
 
@@ -112,6 +113,163 @@ class ApplicationViewModel: ObservableObject {
     var isFormValid: Bool {
         isNameValid && isEmailValid && isCoverLetterValid &&
         isPhoneValid && isAddressValid && isCGPAValid
+    }
+    
+    //MARK: - Appprove application
+    func approveApplication(id: String) async {
+        isLoading = true
+        errorMessage = ""
+        successMessage = ""
+        
+        print("🔵 Starting approve for ID: \(id)")
+        
+        do {
+            let urlString = "http://localhost:4000/api/v1/application/approve/\(id)"
+            print("🔵 URL: \(urlString)")
+            
+            guard let url = URL(string: urlString) else {
+                errorMessage = "Invalid URL"
+                print("❌ Invalid URL")
+                isLoading = false
+                return
+            }
+            
+            var request = URLRequest(url: url)
+            request.httpMethod = "PATCH"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            
+            guard let token = UserDefaults.standard.string(forKey: "auth_token") else {
+                errorMessage = "Please login first"
+                print("❌ No token found")
+                isLoading = false
+                return
+            }
+            
+            print("🔵 Token exists: \(token.prefix(20))...")
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+            
+            let (data, response) = try await URLSession.shared.data(for: request)
+            
+            // Print raw response
+            if let responseString = String(data: data, encoding: .utf8) {
+                print("📥 Raw Response: \(responseString)")
+            }
+            
+            guard let httpResponse = response as? HTTPURLResponse else {
+                errorMessage = "Invalid response"
+                print("❌ Invalid HTTP response")
+                isLoading = false
+                return
+            }
+            
+            print("📊 Status Code: \(httpResponse.statusCode)")
+            
+            if 200...299 ~= httpResponse.statusCode {
+                let approveResponse = try JSONDecoder().decode(ApplicationResponse.self, from: data)
+                
+                print("✅ Decoded response - Success: \(approveResponse.success)")
+                print("✅ Message: \(approveResponse.message)")
+                
+                if approveResponse.success {
+                    successMessage = approveResponse.message
+                    print("✅ Application approved successfully")
+                } else {
+                    errorMessage = approveResponse.message
+                    print("❌ Server said not successful")
+                }
+            } else {
+                errorMessage = "Failed with status: \(httpResponse.statusCode)"
+                print("❌ Bad status code: \(httpResponse.statusCode)")
+            }
+            
+        } catch let error as DecodingError {
+            print("❌ Decoding Error: \(error)")
+            errorMessage = "Failed to decode response"
+        } catch {
+            print("❌ General Error: \(error)")
+            errorMessage = "Error: \(error.localizedDescription)"
+        }
+        
+        isLoading = false
+        print("🔵 Approve function completed")
+    }
+
+    func rejectApplication(id: String) async {
+        isLoading = true
+        errorMessage = ""
+        successMessage = ""
+        
+        print("🔴 Starting reject for ID: \(id)")
+        
+        do {
+            let urlString = "http://localhost:4000/api/v1/application/reject/\(id)"
+            print("🔴 URL: \(urlString)")
+            
+            guard let url = URL(string: urlString) else {
+                errorMessage = "Invalid URL"
+                print("❌ Invalid URL")
+                isLoading = false
+                return
+            }
+            
+            var request = URLRequest(url: url)
+            request.httpMethod = "PATCH"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            
+            guard let token = UserDefaults.standard.string(forKey: "auth_token") else {
+                errorMessage = "Please login first"
+                print("❌ No token found")
+                isLoading = false
+                return
+            }
+            
+            print("🔴 Token exists: \(token.prefix(20))...")
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+            
+            let (data, response) = try await URLSession.shared.data(for: request)
+            
+            // Print raw response
+            if let responseString = String(data: data, encoding: .utf8) {
+                print("📥 Raw Response: \(responseString)")
+            }
+            
+            guard let httpResponse = response as? HTTPURLResponse else {
+                errorMessage = "Invalid response"
+                print("❌ Invalid HTTP response")
+                isLoading = false
+                return
+            }
+            
+            print("📊 Status Code: \(httpResponse.statusCode)")
+            
+            if 200...299 ~= httpResponse.statusCode {
+                let rejectResponse = try JSONDecoder().decode(ApplicationResponse.self, from: data)
+                
+                print("✅ Decoded response - Success: \(rejectResponse.success)")
+                print("✅ Message: \(rejectResponse.message)")
+                
+                if rejectResponse.success {
+                    successMessage = rejectResponse.message
+                    print("✅ Application rejected successfully")
+                } else {
+                    errorMessage = rejectResponse.message
+                    print("❌ Server said not successful")
+                }
+            } else {
+                errorMessage = "Failed with status: \(httpResponse.statusCode)"
+                print("❌ Bad status code: \(httpResponse.statusCode)")
+            }
+            
+        } catch let error as DecodingError {
+            print("❌ Decoding Error: \(error)")
+            errorMessage = "Failed to decode response"
+        } catch {
+            print("❌ General Error: \(error)")
+            errorMessage = "Error: \(error.localizedDescription)"
+        }
+        
+        isLoading = false
+        print("🔴 Reject function completed")
     }
     
     // MARK: - GET all applications

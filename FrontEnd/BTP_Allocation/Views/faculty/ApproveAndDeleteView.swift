@@ -9,6 +9,8 @@ import SwiftUI
 
 struct ApproveAndDeleteView: View {
     let application : Application
+    @StateObject var appviewModel = ApplicationViewModel()
+   
 
     var body: some View {
         VStack{
@@ -32,7 +34,9 @@ struct ApproveAndDeleteView: View {
             
             HStack{
                 Button{
-                    
+                    Task{
+                        await appviewModel.approveApplication(id: application.id)
+                    }
                 }label: {
                     Text("Approv")
                         .foregroundColor(.white)
@@ -47,7 +51,9 @@ struct ApproveAndDeleteView: View {
                 Spacer().frame(width: 30)
                 
                 Button{
-                    
+                    Task{
+                        await appviewModel.rejectApplication(id: application.id)
+                    }
                 }label: {
                     Text("Reject")
                         .foregroundColor(.white)
@@ -80,7 +86,8 @@ struct ApproveAndDeleteView: View {
             facultyID: FacultyID(user: "f1", role: "Prof. Smith"),   // adjust fields to match your actual struct
             projectId: "p123",
             branch: "Computer Science",
-            cgpa: 8.75
+            cgpa: 8.75,
+            status: "Pending"
         )
     )
 }
